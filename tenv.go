@@ -2,17 +2,18 @@ package tenv
 
 import (
 	"go/ast"
+	"io/ioutil"
 	"log"
-	"runtime"
 	"strconv"
 	"strings"
 
+	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-const doc = "tenv is analyzer that detects environment variable not using t.Setenv"
+const doc = "tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17"
 
 // Analyzer is tenv analyzer
 var Analyzer = &analysis.Analyzer{
@@ -24,12 +25,13 @@ var Analyzer = &analysis.Analyzer{
 	},
 }
 
-const F = "f"
-
-var fopt bool
+var (
+	F     = "force"
+	fflag bool
+)
 
 func init() {
-	Analyzer.Flags.BoolVar(&fopt, F, false, "the force option will also run against code prior to Go1.17")
+	Analyzer.Flags.BoolVar(&fflag, F, false, "the force option will also run against code prior to Go1.17")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -92,8 +94,10 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, n *ast.FuncDecl) boo
 	}
 	funName := x.Name + "." + fun.Sel.Name
 	if funName == "os.Setenv" {
-		foldV := checkVersion()
-		if foldV >= 1.17 || isForceExec() {
+		if checkVersion() {
+			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+		}
+		if isForceExec() {
 			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
 		}
 	}
@@ -119,8 +123,10 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, n *ast.FuncDecl) bool {
 	}
 	funName := x.Name + "." + fun.Sel.Name
 	if funName == "os.Setenv" {
-		foldV := checkVersion()
-		if foldV >= 1.17 || isForceExec() {
+		if checkVersion() {
+			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+		}
+		if isForceExec() {
 			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
 		}
 	}
@@ -142,8 +148,10 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl)
 	}
 	funName := x.Name + "." + fun.Sel.Name
 	if funName == "os.Setenv" {
-		foldV := checkVersion()
-		if foldV >= 1.17 || isForceExec() {
+		if checkVersion() {
+			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+		}
+		if isForceExec() {
 			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
 		}
 	}
@@ -176,23 +184,35 @@ func checkGenDecl(pass *analysis.Pass, decl *ast.GenDecl) {
 
 		funName := x.Name + "." + selectorExpr.Sel.Name
 		if funName == "os.Setenv" {
-			foldV := checkVersion()
-			if foldV >= 1.17 || isForceExec() {
+			if checkVersion() {
+				pass.Reportf(valueSpec.Pos(), "variable %s is not using t.Setenv", variable)
+			}
+			if isForceExec() {
 				pass.Reportf(valueSpec.Pos(), "variable %s is not using t.Setenv", variable)
 			}
 		}
 	}
 }
 
-func checkVersion() float64 {
-	version := strings.Trim(runtime.Version(), "go")
-	foldV, err := strconv.ParseFloat(version[0:4], 64)
+func checkVersion() bool {
+	data, err := ioutil.ReadFile("go.mod")
 	if err != nil {
-		log.Println(err)
+		log.Printf("read go.mod error: %v", err)
+		return false
 	}
-	return foldV
+	mod, err := modfile.Parse("", data, nil)
+	if err != nil {
+		log.Printf("parse go.mod error: %v", err)
+		return false
+	}
+	floatVersion, err := strconv.ParseFloat(mod.Go.Version, 64)
+	if err != nil {
+		log.Printf("parse go.mod version error: %v", err)
+		return false
+	}
+	return floatVersion >= 1.17
 }
 
 func isForceExec() bool {
-	return fopt
+	return fflag
 }
