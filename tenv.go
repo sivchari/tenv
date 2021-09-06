@@ -24,10 +24,10 @@ var Analyzer = &analysis.Analyzer{
 	},
 }
 
-var f bool
+var F bool
 
 func init() {
-	Analyzer.Flags.BoolVar(&f, "f", false, "the force option will also run against code prior to Go1.17")
+	Analyzer.Flags.BoolVar(&F, "f", false, "the force option will also run against code prior to Go1.17")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -192,5 +192,5 @@ func checkVersion() float64 {
 }
 
 func isForceExec() bool {
-	return f
+	return F
 }
