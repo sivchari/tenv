@@ -1,5 +1,5 @@
 # tenv
-tenv is analyzer that detects environment variable not using t.Setenv
+tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
 
 [![test_and_lint](https://github.com/sivchari/tenv/actions/workflows/workflows.yml/badge.svg?branch=main)](https://github.com/sivchari/tenv/actions/workflows/workflows.yml)
 
@@ -94,7 +94,7 @@ go vet -vettool=`which tenv` -tenv.f main.go
 ```yaml
 - run:
     name: Install tenv
-    command: go get github.com/sivchari/tenv
+    command: go install github.com/sivchari/tenv
 
 - run:
     name: Run tenv
@@ -105,7 +105,7 @@ go vet -vettool=`which tenv` -tenv.f main.go
 
 ```yaml
 - name: Install tenv
-  run: go get github.com/sivchari/tenv
+  run: go install github.com/sivchari/tenv
 
 - name: Run tenv
   run: go vet -vettool=`which tenv` ./...
