@@ -60,71 +60,92 @@ func checkFunc(pass *analysis.Pass, n *ast.FuncDecl) {
 	for _, stmt := range n.Body.List {
 		switch stmt := stmt.(type) {
 		case *ast.ExprStmt:
-			callExpr, ok := stmt.X.(*ast.CallExpr)
-			if !ok {
+			if !checkExprStmt(pass, stmt, n) {
 				continue
-			}
-			fun, ok := callExpr.Fun.(*ast.SelectorExpr)
-			if !ok {
-				continue
-			}
-			x, ok := fun.X.(*ast.Ident)
-			if !ok {
-				continue
-			}
-			funName := x.Name + "." + fun.Sel.Name
-			if funName == "os.Setenv" {
-				foldV := checkVersion()
-				if foldV >= 1.17 || isForceExec() {
-					pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
-				}
 			}
 		case *ast.IfStmt:
-			assignStmt, ok := stmt.Init.(*ast.AssignStmt)
-			if !ok {
+			if !checkIfStmt(pass, stmt, n) {
 				continue
-			}
-			rhs, ok := assignStmt.Rhs[0].(*ast.CallExpr)
-			if !ok {
-				continue
-			}
-			fun, ok := rhs.Fun.(*ast.SelectorExpr)
-			if !ok {
-				continue
-			}
-			x, ok := fun.X.(*ast.Ident)
-			if !ok {
-				continue
-			}
-			funName := x.Name + "." + fun.Sel.Name
-			if funName == "os.Setenv" {
-				foldV := checkVersion()
-				if foldV >= 1.17 || isForceExec() {
-					pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
-				}
 			}
 		case *ast.AssignStmt:
-			rhs, ok := stmt.Rhs[0].(*ast.CallExpr)
-			if !ok {
+			if !checkAssignStmt(pass, stmt, n) {
 				continue
-			}
-			fun, ok := rhs.Fun.(*ast.SelectorExpr)
-			if !ok {
-				continue
-			}
-			x, ok := fun.X.(*ast.Ident)
-			if !ok {
-				continue
-			}
-			funName := x.Name + "." + fun.Sel.Name
-			if funName == "os.Setenv" {
-				foldV := checkVersion()
-				if foldV >= 1.17 || isForceExec() {
-					pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
-				}
 			}
 		}
 	}
+}
+
+func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, n *ast.FuncDecl) bool {
+	callExpr, ok := stmt.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	fun, ok := callExpr.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	x, ok := fun.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	funName := x.Name + "." + fun.Sel.Name
+	if funName == "os.Setenv" {
+		foldV := checkVersion()
+		if foldV >= 1.17 || isForceExec() {
+			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+		}
+	}
+	return true
+}
+
+func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, n *ast.FuncDecl) bool {
+	assignStmt, ok := stmt.Init.(*ast.AssignStmt)
+	if !ok {
+		return false
+	}
+	rhs, ok := assignStmt.Rhs[0].(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	fun, ok := rhs.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	x, ok := fun.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	funName := x.Name + "." + fun.Sel.Name
+	if funName == "os.Setenv" {
+		foldV := checkVersion()
+		if foldV >= 1.17 || isForceExec() {
+			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+		}
+	}
+	return true
+}
+
+func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl) bool {
+	rhs, ok := stmt.Rhs[0].(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	fun, ok := rhs.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	x, ok := fun.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	funName := x.Name + "." + fun.Sel.Name
+	if funName == "os.Setenv" {
+		foldV := checkVersion()
+		if foldV >= 1.17 || isForceExec() {
+			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+		}
+	}
+	return true
 }
 
 func checkGenDecl(pass *analysis.Pass, decl *ast.GenDecl) {
