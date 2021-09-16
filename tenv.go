@@ -190,10 +190,10 @@ func checkGenDecl(pass *analysis.Pass, decl *ast.GenDecl) {
 		funName := x.Name + "." + selectorExpr.Sel.Name
 		if funName == "os.Setenv" {
 			if checkVersion() {
-				pass.Reportf(valueSpec.Pos(), "variable %s is not using t.Setenv", variable)
+				pass.Reportf(valueSpec.Pos(), "variable %s is not using testing.Setenv", variable)
 			}
 			if isForceExec() {
-				pass.Reportf(valueSpec.Pos(), "variable %s is not using t.Setenv", variable)
+				pass.Reportf(valueSpec.Pos(), "variable %s is not using testing.Setenv", variable)
 			}
 		}
 	}
