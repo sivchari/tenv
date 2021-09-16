@@ -28,10 +28,13 @@ var Analyzer = &analysis.Analyzer{
 var (
 	F     = "force"
 	fflag bool
+	A     = "all"
+	aflag bool
 )
 
 func init() {
 	Analyzer.Flags.BoolVar(&fflag, F, false, "the force option will also run against code prior to Go1.17")
+	Analyzer.Flags.BoolVar(&aflag, A, false, "the all option will run against all method in test file")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -50,7 +53,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					case *ast.FuncDecl:
 						checkFunc(pass, decl)
 					case *ast.GenDecl:
-						checkGenDecl(pass, decl)
+						if aflag {
+							checkGenDecl(pass, decl)
+						}
 					}
 				}
 			}
@@ -61,19 +66,21 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func checkFunc(pass *analysis.Pass, n *ast.FuncDecl) {
-	for _, stmt := range n.Body.List {
-		switch stmt := stmt.(type) {
-		case *ast.ExprStmt:
-			if !checkExprStmt(pass, stmt, n) {
-				continue
-			}
-		case *ast.IfStmt:
-			if !checkIfStmt(pass, stmt, n) {
-				continue
-			}
-		case *ast.AssignStmt:
-			if !checkAssignStmt(pass, stmt, n) {
-				continue
+	if targetRunner(n) {
+		for _, stmt := range n.Body.List {
+			switch stmt := stmt.(type) {
+			case *ast.ExprStmt:
+				if !checkExprStmt(pass, stmt, n) {
+					continue
+				}
+			case *ast.IfStmt:
+				if !checkIfStmt(pass, stmt, n) {
+					continue
+				}
+			case *ast.AssignStmt:
+				if !checkAssignStmt(pass, stmt, n) {
+					continue
+				}
 			}
 		}
 	}
@@ -213,4 +220,51 @@ func checkVersion() bool {
 
 func isForceExec() bool {
 	return fflag
+}
+
+func targetRunner(funcDecl *ast.FuncDecl) bool {
+	if aflag {
+		return true
+	}
+	params := funcDecl.Type.Params.List
+	for _, p := range params {
+		switch typ := p.Type.(type) {
+		case *ast.StarExpr:
+			if checkStarExprTarget(typ) {
+				return true
+			}
+		case *ast.SelectorExpr:
+			if checkSelectorExprTarget(typ) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func checkStarExprTarget(typ *ast.StarExpr) bool {
+	selector, ok := typ.X.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	x, ok := selector.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	targetName := x.Name + "." + selector.Sel.Name
+	switch targetName {
+	case "testing.T", "testing.B":
+		return true
+	default:
+		return false
+	}
+}
+
+func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
+	x, ok := typ.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	targetName := x.Name + "." + typ.Sel.Name
+	return targetName == "testing.TB"
 }
