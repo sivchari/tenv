@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	e = os.Setenv("a", "b") // want "variable e is not using t.Setenv"
-	_ = e
+	e   = os.Setenv("a", "b") // want "variable e is not using t.Setenv"
+	_   = e
+	env string
 )
 
 func setup() {
@@ -16,6 +17,8 @@ func setup() {
 	if err != nil {
 		_ = err
 	}
+	env = os.Getenv("a")
+	os.Setenv("a", "b") // want "func setup is not using t.Setenv"
 }
 
 func TestF(t *testing.T) {

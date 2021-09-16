@@ -164,24 +164,22 @@ func checkGenDecl(pass *analysis.Pass, decl *ast.GenDecl) {
 		if !ok {
 			continue
 		}
-
+		if len(valueSpec.Values) == 0 {
+			continue
+		}
 		callExpr, ok := valueSpec.Values[0].(*ast.CallExpr)
 		if !ok {
 			continue
 		}
-
 		selectorExpr, ok := callExpr.Fun.(*ast.SelectorExpr)
 		if !ok {
 			continue
 		}
-
 		x, ok := selectorExpr.X.(*ast.Ident)
 		if !ok {
 			continue
 		}
-
 		variable := valueSpec.Names[0].Name
-
 		funName := x.Name + "." + selectorExpr.Sel.Name
 		if funName == "os.Setenv" {
 			if checkVersion() {
