@@ -102,10 +102,10 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, n *ast.FuncDecl) boo
 	funName := x.Name + "." + fun.Sel.Name
 	if funName == "os.Setenv" {
 		if checkVersion() {
-			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+			pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
 		}
 		if isForceExec() {
-			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+			pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
 		}
 	}
 	return true
@@ -131,10 +131,10 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, n *ast.FuncDecl) bool {
 	funName := x.Name + "." + fun.Sel.Name
 	if funName == "os.Setenv" {
 		if checkVersion() {
-			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+			pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
 		}
 		if isForceExec() {
-			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+			pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
 		}
 	}
 	return true
@@ -156,10 +156,10 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl)
 	funName := x.Name + "." + fun.Sel.Name
 	if funName == "os.Setenv" {
 		if checkVersion() {
-			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+			pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
 		}
 		if isForceExec() {
-			pass.Reportf(stmt.Pos(), "func %s is not using t.Setenv", n.Name.Name)
+			pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
 		}
 	}
 	return true
