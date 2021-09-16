@@ -2,8 +2,8 @@ package tenv
 
 import (
 	"go/ast"
+	"io/ioutil"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 
@@ -193,7 +193,7 @@ func checkGenDecl(pass *analysis.Pass, decl *ast.GenDecl) {
 }
 
 func checkVersion() bool {
-	data, err := os.ReadFile("go.mod")
+	data, err := ioutil.ReadFile("go.mod")
 	if err != nil {
 		log.Printf("read go.mod error: %v", err)
 		return false
