@@ -166,6 +166,9 @@ func targetRunner(funcDecl *ast.FuncDecl) (string, bool) {
 			}
 		}
 	}
+	if aflag {
+		return "", true
+	}
 	return "", false
 }
 
@@ -183,9 +186,6 @@ func checkStarExprTarget(typ *ast.StarExpr) bool {
 	case "testing.T", "testing.B":
 		return true
 	default:
-		if aflag {
-			return true
-		}
 		return false
 	}
 }
@@ -197,9 +197,6 @@ func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
 	}
 	targetName := x.Name + "." + typ.Sel.Name
 	if targetName == "testing.TB" {
-		return true
-	}
-	if aflag {
 		return true
 	}
 	return false
