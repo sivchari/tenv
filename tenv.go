@@ -42,14 +42,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		case *ast.File:
 			if strings.HasSuffix(pass.Fset.File(n.Pos()).Name(), "_test.go") {
 				for _, decl := range n.Decls {
-					switch decl := decl.(type) {
-					case *ast.FuncDecl:
-						checkFunc(pass, decl)
-					case *ast.GenDecl:
-						if aflag {
-							checkGenDecl(pass, decl)
-						}
+					funcDecl, ok := decl.(*ast.FuncDecl)
+					if !ok {
+						continue
 					}
+					checkFunc(pass, funcDecl)
 				}
 			}
 		}
@@ -59,19 +56,20 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func checkFunc(pass *analysis.Pass, n *ast.FuncDecl) {
-	if targetRunner(n) {
+	argName, ok := targetRunner(n)
+	if ok {
 		for _, stmt := range n.Body.List {
 			switch stmt := stmt.(type) {
 			case *ast.ExprStmt:
-				if !checkExprStmt(pass, stmt, n) {
+				if !checkExprStmt(pass, stmt, n, argName) {
 					continue
 				}
 			case *ast.IfStmt:
-				if !checkIfStmt(pass, stmt, n) {
+				if !checkIfStmt(pass, stmt, n, argName) {
 					continue
 				}
 			case *ast.AssignStmt:
-				if !checkAssignStmt(pass, stmt, n) {
+				if !checkAssignStmt(pass, stmt, n, argName) {
 					continue
 				}
 			}
@@ -79,7 +77,7 @@ func checkFunc(pass *analysis.Pass, n *ast.FuncDecl) {
 	}
 }
 
-func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, n *ast.FuncDecl) bool {
+func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, n *ast.FuncDecl, argName string) bool {
 	callExpr, ok := stmt.X.(*ast.CallExpr)
 	if !ok {
 		return false
@@ -92,14 +90,14 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, n *ast.FuncDecl) boo
 	if !ok {
 		return false
 	}
-	funName := x.Name + "." + fun.Sel.Name
-	if funName == "os.Setenv" {
-		pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
+	targetName := x.Name + "." + fun.Sel.Name
+	if targetName == "os.Setenv" {
+		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, n.Name.Name)
 	}
 	return true
 }
 
-func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, n *ast.FuncDecl) bool {
+func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, n *ast.FuncDecl, argName string) bool {
 	assignStmt, ok := stmt.Init.(*ast.AssignStmt)
 	if !ok {
 		return false
@@ -116,14 +114,14 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, n *ast.FuncDecl) bool {
 	if !ok {
 		return false
 	}
-	funName := x.Name + "." + fun.Sel.Name
-	if funName == "os.Setenv" {
-		pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
+	targetName := x.Name + "." + fun.Sel.Name
+	if targetName == "os.Setenv" {
+		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, n.Name.Name)
 	}
 	return true
 }
 
-func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl) bool {
+func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl, argName string) bool {
 	rhs, ok := stmt.Rhs[0].(*ast.CallExpr)
 	if !ok {
 		return false
@@ -136,60 +134,30 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl)
 	if !ok {
 		return false
 	}
-	funName := x.Name + "." + fun.Sel.Name
-	if funName == "os.Setenv" {
-		pass.Reportf(stmt.Pos(), "func %s is not using testing.Setenv", n.Name.Name)
+	targetName := x.Name + "." + fun.Sel.Name
+	if targetName == "os.Setenv" {
+		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, n.Name.Name)
 	}
 	return true
 }
 
-func checkGenDecl(pass *analysis.Pass, decl *ast.GenDecl) {
-	for _, spec := range decl.Specs {
-		valueSpec, ok := spec.(*ast.ValueSpec)
-		if !ok {
-			continue
-		}
-		if len(valueSpec.Values) == 0 {
-			continue
-		}
-		callExpr, ok := valueSpec.Values[0].(*ast.CallExpr)
-		if !ok {
-			continue
-		}
-		selectorExpr, ok := callExpr.Fun.(*ast.SelectorExpr)
-		if !ok {
-			continue
-		}
-		x, ok := selectorExpr.X.(*ast.Ident)
-		if !ok {
-			continue
-		}
-		variable := valueSpec.Names[0].Name
-		funName := x.Name + "." + selectorExpr.Sel.Name
-		if funName == "os.Setenv" {
-			pass.Reportf(valueSpec.Pos(), "variable %s is not using testing.Setenv", variable)
-		}
-	}
-}
-
-func targetRunner(funcDecl *ast.FuncDecl) bool {
-	if aflag {
-		return true
-	}
+func targetRunner(funcDecl *ast.FuncDecl) (string, bool) {
 	params := funcDecl.Type.Params.List
 	for _, p := range params {
 		switch typ := p.Type.(type) {
 		case *ast.StarExpr:
 			if checkStarExprTarget(typ) {
-				return true
+				argName := p.Names[0].Name
+				return argName, true
 			}
 		case *ast.SelectorExpr:
 			if checkSelectorExprTarget(typ) {
-				return true
+				argName := p.Names[0].Name
+				return argName, true
 			}
 		}
 	}
-	return false
+	return "", false
 }
 
 func checkStarExprTarget(typ *ast.StarExpr) bool {
@@ -206,6 +174,9 @@ func checkStarExprTarget(typ *ast.StarExpr) bool {
 	case "testing.T", "testing.B":
 		return true
 	default:
+		if aflag {
+			return true
+		}
 		return false
 	}
 }
@@ -216,5 +187,11 @@ func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
 		return false
 	}
 	targetName := x.Name + "." + typ.Sel.Name
-	return targetName == "testing.TB"
+	if targetName == "testing.TB" {
+		return true
+	}
+	if aflag {
+		return true
+	}
+	return false
 }
