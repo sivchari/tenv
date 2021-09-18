@@ -92,6 +92,9 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, n *ast.FuncDecl, arg
 	}
 	targetName := x.Name + "." + fun.Sel.Name
 	if targetName == "os.Setenv" {
+		if argName == "" {
+			argName = "testing"
+		}
 		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, n.Name.Name)
 	}
 	return true
@@ -116,6 +119,9 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, n *ast.FuncDecl, argName
 	}
 	targetName := x.Name + "." + fun.Sel.Name
 	if targetName == "os.Setenv" {
+		if argName == "" {
+			argName = "testing"
+		}
 		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, n.Name.Name)
 	}
 	return true
@@ -136,6 +142,9 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl,
 	}
 	targetName := x.Name + "." + fun.Sel.Name
 	if targetName == "os.Setenv" {
+		if argName == "" {
+			argName = "testing"
+		}
 		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, n.Name.Name)
 	}
 	return true
