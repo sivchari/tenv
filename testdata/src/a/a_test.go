@@ -20,20 +20,20 @@ func setup() {
 
 func TestF(t *testing.T) {
 	setup()
-	os.Setenv("a", "b")                         // want "os.Setenv() can be replaced by `t.Setenv()` in TestF"
-	if err := os.Setenv("a", "b"); err != nil { // want "os.Setenv() can be replaced by `t.Setenv()` in TestF"
+	os.Setenv("a", "b")                         // want "os\\.Setenv\\(\\) can be replaced by `t\\.Setenv\\(\\)` in TestF"
+	if err := os.Setenv("a", "b"); err != nil { // want "os\\.Setenv\\(\\) can be replaced by `t\\.Setenv\\(\\)` in TestF"
 		_ = err
 	}
 }
 
 func BenchmarkF(b *testing.B) {
 	testTB(b)
-	os.Setenv("a", "b")                         // want "os.Setenv() can be replaced by `b.Setenv()` in BenchmarkF"
-	if err := os.Setenv("a", "b"); err != nil { // want "os.Setenv() can be replaced by `b.Setenv()` in BenchmarkF"
+	os.Setenv("a", "b")                         // want "os\\.Setenv\\(\\) can be replaced by `b\\.Setenv\\(\\)` in BenchmarkF"
+	if err := os.Setenv("a", "b"); err != nil { // want "os\\.Setenv\\(\\) can be replaced by `b\\.Setenv\\(\\)` in BenchmarkF"
 		_ = err
 	}
 }
 
 func testTB(tb testing.TB) {
-	os.Setenv("a", "b") // want "os.Setenv() can be replaced by `tb.Setenv()` in testTB"
+	os.Setenv("a", "b") // want "os\\.Setenv\\(\\) can be replaced by `tb\\.Setenv\\(\\)` in testTB"
 }
