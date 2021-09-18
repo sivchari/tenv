@@ -196,8 +196,5 @@ func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
 		return false
 	}
 	targetName := x.Name + "." + typ.Sel.Name
-	if targetName == "testing.TB" {
-		return true
-	}
-	return false
+	return targetName == "testing.TB"
 }
