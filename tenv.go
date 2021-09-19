@@ -40,14 +40,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		switch n := n.(type) {
 		case *ast.File:
-			if strings.HasSuffix(pass.Fset.File(n.Pos()).Name(), "_test.go") {
-				for _, decl := range n.Decls {
-					funcDecl, ok := decl.(*ast.FuncDecl)
-					if !ok {
-						continue
-					}
-					checkFunc(pass, funcDecl)
+			for _, decl := range n.Decls {
+
+				funcDecl, ok := decl.(*ast.FuncDecl)
+				if !ok {
+					continue
 				}
+				checkFunc(pass, funcDecl, pass.Fset.File(n.Pos()).Name())
 			}
 		}
 	})
@@ -55,8 +54,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-func checkFunc(pass *analysis.Pass, n *ast.FuncDecl) {
-	argName, ok := targetRunner(n)
+func checkFunc(pass *analysis.Pass, n *ast.FuncDecl, fileName string) {
+	argName, ok := targetRunner(n, fileName)
 	if ok {
 		for _, stmt := range n.Body.List {
 			switch stmt := stmt.(type) {
@@ -150,7 +149,7 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, n *ast.FuncDecl,
 	return true
 }
 
-func targetRunner(funcDecl *ast.FuncDecl) (string, bool) {
+func targetRunner(funcDecl *ast.FuncDecl, fileName string) (string, bool) {
 	params := funcDecl.Type.Params.List
 	for _, p := range params {
 		switch typ := p.Type.(type) {
@@ -166,7 +165,7 @@ func targetRunner(funcDecl *ast.FuncDecl) (string, bool) {
 			}
 		}
 	}
-	if aflag {
+	if aflag && strings.HasSuffix(fileName, "_test.go") {
 		return "", true
 	}
 	return "", false
