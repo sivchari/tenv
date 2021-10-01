@@ -2,9 +2,10 @@
 
 ![tenv Gopher](./tenv.png "Gopher")
 
-tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
 
 [![test_and_lint](https://github.com/sivchari/tenv/actions/workflows/workflows.yml/badge.svg?branch=main)](https://github.com/sivchari/tenv/actions/workflows/workflows.yml)
+
+tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
 
 ## Instruction
 
