@@ -46,3 +46,12 @@ func TBF(tb testing.TB) {
 		_ = err
 	}
 }
+
+func FF(f *testing.F) {
+	os.Setenv("a", "b")        // want "os\\.Setenv\\(\\) can be replaced by `f\\.Setenv\\(\\)` in FF"
+	err := os.Setenv("a", "b") // want "os\\.Setenv\\(\\) can be replaced by `f\\.Setenv\\(\\)` in FF"
+	_ = err
+	if err := os.Setenv("a", "b"); err != nil { // want "os\\.Setenv\\(\\) can be replaced by `f\\.Setenv\\(\\)` in FF"
+		_ = err
+	}
+}
