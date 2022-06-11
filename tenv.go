@@ -63,7 +63,7 @@ func checkFuncLit(pass *analysis.Pass, f *ast.FuncLit, fileName string) {
 	if !ok {
 		return
 	}
-	checkStmts(pass, f.Body.List, "function literal", argName)
+	checkStmts(pass, f.Body.List, "anonymous function", argName)
 }
 
 func checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string) {
