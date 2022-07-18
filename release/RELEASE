@@ -1,0 +1,6 @@
+tag: v1.6.0
+prerelease: false
+
+releaseNoteGenerator:
+  useReleaseNoteBlock: true
+  usePullRequestMetadata: true
