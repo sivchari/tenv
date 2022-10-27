@@ -71,3 +71,7 @@ func TestFunctionLiteral(t *testing.T) {
 func TestEmpty(t *testing.T) {
 	t.Run("test", func(*testing.T) {})
 }
+
+func TestEmptyTB(t *testing.T) {
+	func(testing.TB) {}(t)
+}
