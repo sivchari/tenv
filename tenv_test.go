@@ -14,3 +14,10 @@ func TestAnalyzer(t *testing.T) {
 	testdata := testutil.WithModules(t, analysistest.TestData(), nil)
 	analysistest.Run(t, testdata, tenv.Analyzer, "a")
 }
+
+func TestAnalyzerGo116(t *testing.T) {
+	testdata := testutil.WithModules(t, analysistest.TestData(), nil)
+	a := tenv.Analyzer
+	a.Flags.Parse([]string{"-go", "1.16"})
+	analysistest.Run(t, testdata, a, "go116")
+}

@@ -47,7 +47,9 @@ go vet -vettool=(which tenv) ./...
 
 ### option
 
-The option `all` will run against whole test files (`_test.go`) regardless of method/function signatures.  
+The option `all` will run against whole test files (`_test.go`) regardless of method/function signatures.
+
+The option `go` allows to specify Go version. If the version is not empty and lower than Go 1.17 the analysis will be skipped.
 
 By default, only methods that take `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
 

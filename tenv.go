@@ -2,6 +2,7 @@ package tenv
 
 import (
 	"go/ast"
+	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -24,13 +25,22 @@ var Analyzer = &analysis.Analyzer{
 var (
 	A     = "all"
 	aflag bool
+
+	Go     = "go"
+	goflag string
 )
 
 func init() {
 	Analyzer.Flags.BoolVar(&aflag, A, false, "the all option will run against all method in test file")
+	Analyzer.Flags.StringVar(&goflag, Go, "1.17", "Go version")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
+	if goVersionLower117(goflag) {
+		// Do nothing because T.Setenv added in go1.17
+		return nil, nil
+	}
+
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -44,7 +54,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			checkFuncDecl(pass, n, pass.Fset.File(n.Pos()).Name())
 		case *ast.FuncLit:
 			checkFuncLit(pass, n, pass.Fset.File(n.Pos()).Name())
-		}
 	})
 
 	return nil, nil
@@ -210,4 +219,36 @@ func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
 	}
 	targetName := x.Name + "." + typ.Sel.Name
 	return targetName == "testing.TB"
+}
+
+// goVersionLower117 returns true if version is lower than go1.17.
+// In case of any parse errors it returns false.
+func goVersionLower117(version string) bool {
+	version = strings.TrimPrefix(version, "go")
+	if version == "" {
+		return false
+	}
+
+	parts := strings.Split(version, ".")
+	if len(parts) != 2 {
+		return false
+	}
+
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return false
+	}
+	if major < 1 {
+		return true
+	}
+
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return false
+	}
+	if minor < 17 {
+		return true
+	}
+
+	return false
 }
