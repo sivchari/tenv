@@ -45,11 +45,9 @@ go vet -vettool=(which tenv) ./...
 ./main_test.go:11:2: os.Setenv() can be replaced by `t.Setenv()` in TestMain
 ```
 
-### option
+### options
 
 The option `all` will run against whole test files (`_test.go`) regardless of method/function signatures.
-
-The option `go` allows to specify Go version. If the version is not empty and lower than Go 1.17 the analysis will be skipped.
 
 By default, only methods that take `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
 
@@ -77,12 +75,19 @@ func helper() {
 ```
 
 ```console
-go vet -vettool=(which tenv) -tenv.all ./...
+go vet -vettool=$(which tenv) -tenv.all ./...
 
 # a
 ./main_test.go:11:2: os.Setenv() can be replaced by `t.Setenv()` in TestMain
 ./main_test.go:19:2: os.Setenv() can be replaced by `testing.Setenv()` in helper
 ```
+
+The option `go` allows to specify Go version. If the version is not empty and lower than Go 1.17 the analysis will be skipped.
+
+```console
+go vet -vettool=$(which tenv) -tenv.go 1.16 ./...
+
+Outputs nothing because specified Go 1.16 is lower than 1.17.
 
 ## CI
 

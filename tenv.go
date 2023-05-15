@@ -1,6 +1,8 @@
 package tenv
 
 import (
+	"errors"
+	"fmt"
 	"go/ast"
 	"strconv"
 	"strings"
@@ -36,7 +38,12 @@ func init() {
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	if goVersionLower117(goflag) {
+	lower, err := goVersionLower117(goflag)
+	if err != nil {
+		return nil, err
+	}
+
+	if lower {
 		// Do nothing because T.Setenv added in go1.17
 		return nil, nil
 	}
@@ -54,6 +61,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			checkFuncDecl(pass, n, pass.Fset.File(n.Pos()).Name())
 		case *ast.FuncLit:
 			checkFuncLit(pass, n, pass.Fset.File(n.Pos()).Name())
+		}
 	})
 
 	return nil, nil
@@ -221,34 +229,32 @@ func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
 	return targetName == "testing.TB"
 }
 
-// goVersionLower117 returns true if version is lower than go1.17.
-// In case of any parse errors it returns false.
-func goVersionLower117(version string) bool {
+// goVersionLower117 returns true if version is lower than Go 1.17 or empty.
+// version must be in the format 'go1.17', '1.17'.
+// In case of an invalid input returns not-nil error.
+func goVersionLower117(version string) (bool, error) {
 	version = strings.TrimPrefix(version, "go")
 	if version == "" {
-		return false
+		return false, nil
 	}
 
 	parts := strings.Split(version, ".")
 	if len(parts) != 2 {
-		return false
+		return false, errors.New(`go version must has format "go<MAJOR>.<MINOR>" or "<MAJOR>.<MINOR>"`)
 	}
 
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return false
+		return false, fmt.Errorf("go version major part must be a number: %w", err)
 	}
 	if major < 1 {
-		return true
+		return true, nil
 	}
 
 	minor, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return false
-	}
-	if minor < 17 {
-		return true
+		return false, fmt.Errorf("go version minor part must be a number: %w", err)
 	}
 
-	return false
+	return minor < 17, nil
 }
