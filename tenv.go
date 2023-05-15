@@ -1,7 +1,10 @@
 package tenv
 
 import (
+	"errors"
+	"fmt"
 	"go/ast"
+	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -24,13 +27,27 @@ var Analyzer = &analysis.Analyzer{
 var (
 	A     = "all"
 	aflag bool
+
+	Go     = "go"
+	goflag string
 )
 
 func init() {
 	Analyzer.Flags.BoolVar(&aflag, A, false, "the all option will run against all method in test file")
+	Analyzer.Flags.StringVar(&goflag, Go, "1.17", "Go version")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
+	lower, err := goVersionLower117(goflag)
+	if err != nil {
+		return nil, err
+	}
+
+	if lower {
+		// Do nothing because T.Setenv added in go1.17
+		return nil, nil
+	}
+
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -210,4 +227,34 @@ func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
 	}
 	targetName := x.Name + "." + typ.Sel.Name
 	return targetName == "testing.TB"
+}
+
+// goVersionLower117 returns true if version is lower than Go 1.17 or empty.
+// version must be in the format 'go1.17', '1.17'.
+// In case of an invalid input returns not-nil error.
+func goVersionLower117(version string) (bool, error) {
+	version = strings.TrimPrefix(version, "go")
+	if version == "" {
+		return false, nil
+	}
+
+	parts := strings.Split(version, ".")
+	if len(parts) != 2 {
+		return false, errors.New(`go version must has format "go<MAJOR>.<MINOR>" or "<MAJOR>.<MINOR>"`)
+	}
+
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return false, fmt.Errorf("go version major part must be a number: %w", err)
+	}
+	if major < 1 {
+		return true, nil
+	}
+
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return false, fmt.Errorf("go version minor part must be a number: %w", err)
+	}
+
+	return minor < 17, nil
 }
