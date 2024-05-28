@@ -1,6 +1,7 @@
 package tenv
 
 import (
+	"fmt"
 	"go/ast"
 	"strings"
 
@@ -94,6 +95,7 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 	if !ok {
 		return false
 	}
+	fmt.Println(pass.TypesInfo.Types[fun.Sel].Value)
 	x, ok := fun.X.(*ast.Ident)
 	if !ok {
 		return false
