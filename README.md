@@ -82,7 +82,7 @@ go vet -vettool=$(which tenv) -tenv.all ./...
 ./main_test.go:19:2: os.Setenv() can be replaced by `testing.Setenv()` in helper
 ```
 
-The option `go` allows to specify Go version. If the version is not empty and lower than Go 1.17 the analysis will be skipped.
+The option `go` allows to specify Go version. If the version is not empty or lower than Go 1.17, the analysis will be skipped.
 
 ```console
 go vet -vettool=$(which tenv) -tenv.go 1.16 ./...
