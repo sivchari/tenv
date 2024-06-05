@@ -1,6 +1,7 @@
 package tenv
 
 import (
+	"fmt"
 	"go/ast"
 	"strings"
 
@@ -94,6 +95,7 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 	if !ok {
 		return false
 	}
+	fmt.Println(pass.TypesInfo.Types[fun.Sel].Value)
 	x, ok := fun.X.(*ast.Ident)
 	if !ok {
 		return false
@@ -196,7 +198,7 @@ func checkStarExprTarget(typ *ast.StarExpr) bool {
 	}
 	targetName := x.Name + "." + selector.Sel.Name
 	switch targetName {
-	case "testing.T", "testing.B", "testing.F":
+	case "testing.T", "testing.B":
 		return true
 	default:
 		return false
