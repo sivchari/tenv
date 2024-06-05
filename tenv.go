@@ -1,7 +1,6 @@
 package tenv
 
 import (
-	"fmt"
 	"go/ast"
 	"strings"
 
@@ -82,6 +81,8 @@ func checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string)
 			if !checkAssignStmt(pass, stmt, funcName, argName) {
 				continue
 			}
+		case *ast.ForStmt:
+			checkForStmt(pass, stmt, funcName, argName)
 		}
 	}
 }
@@ -95,7 +96,6 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 	if !ok {
 		return false
 	}
-	fmt.Println(pass.TypesInfo.Types[fun.Sel].Value)
 	x, ok := fun.X.(*ast.Ident)
 	if !ok {
 		return false
@@ -158,6 +158,10 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argNam
 		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
 	}
 	return true
+}
+
+func checkForStmt(pass *analysis.Pass, stmt *ast.ForStmt, funcName, argName string) {
+	checkStmts(pass, stmt.Body.List, funcName, argName)
 }
 
 func targetRunner(params []*ast.Field, fileName string) (string, bool) {
