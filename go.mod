@@ -1,6 +1,6 @@
 module github.com/sivchari/tenv
 
-go 1.22.3
+go 1.21.0
 
 require (
 	github.com/gostaticanalysis/testutil v0.4.0
