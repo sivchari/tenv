@@ -1,6 +1,6 @@
 # tenv
 
-![tenv Gopher](./tenv.png "Gopher")
+<img title="Gopher" alt="tenv Gopher" src="./tenv.png" width="400">
 
 
 [![test_and_lint](https://github.com/sivchari/tenv/actions/workflows/workflows.yml/badge.svg?branch=main)](https://github.com/sivchari/tenv/actions/workflows/workflows.yml)
