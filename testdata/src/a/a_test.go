@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -94,4 +96,8 @@ func TestLoop(t *testing.T) {
 			_ = err
 		}
 	}
+}
+
+func TestUsingArg(t *testing.T) {
+	require.NoError(t, os.Setenv("a", "b")) // want "os\\.Setenv\\(\\) can be replaced by `t\\.Setenv\\(\\)` in TestUsingArg"
 }
