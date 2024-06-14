@@ -92,6 +92,7 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 	if !ok {
 		return false
 	}
+	checkArgs(pass, callExpr.Args, funcName, argName)
 	fun, ok := callExpr.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return false
@@ -108,6 +109,30 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
 	}
 	return true
+}
+
+func checkArgs(pass *analysis.Pass, args []ast.Expr, funcName, argName string) {
+	for _, arg := range args {
+		callExpr, ok := arg.(*ast.CallExpr)
+		if !ok {
+			continue
+		}
+		fun, ok := callExpr.Fun.(*ast.SelectorExpr)
+		if !ok {
+			continue
+		}
+		x, ok := fun.X.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		targetName := x.Name + "." + fun.Sel.Name
+		if targetName == "os.Setenv" {
+			if argName == "" {
+				argName = "testing"
+			}
+			pass.Reportf(arg.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
+		}
+	}
 }
 
 func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string) bool {
