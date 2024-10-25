@@ -3,6 +3,8 @@ package tenv
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
+	"go/types"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -94,19 +96,17 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 		return false
 	}
 	checkArgs(pass, callExpr.Args, funcName, argName)
+	ident, ok := callExpr.Fun.(*ast.Ident)
+	if ok {
+		obj := pass.TypesInfo.ObjectOf(ident)
+		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+	}
 	fun, ok := callExpr.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
+	if ok {
+		obj := pass.TypesInfo.ObjectOf(fun.Sel)
+		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
-	obj := pass.TypesInfo.ObjectOf(fun.Sel)
-	targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
-	if targetName == "os.Setenv" {
-		if argName == "" {
-			argName = "testing"
-		}
-		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
-	}
-	return true
+	return false
 }
 
 func checkArgs(pass *analysis.Pass, args []ast.Expr, funcName, argName string) {
@@ -115,17 +115,15 @@ func checkArgs(pass *analysis.Pass, args []ast.Expr, funcName, argName string) {
 		if !ok {
 			continue
 		}
-		fun, ok := callExpr.Fun.(*ast.SelectorExpr)
-		if !ok {
-			continue
+		ident, ok := callExpr.Fun.(*ast.Ident)
+		if ok {
+			obj := pass.TypesInfo.ObjectOf(ident)
+			checkObj(pass, obj, arg.Pos(), funcName, argName)
 		}
-		obj := pass.TypesInfo.ObjectOf(fun.Sel)
-		targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
-		if targetName == "os.Setenv" {
-			if argName == "" {
-				argName = "testing"
-			}
-			pass.Reportf(arg.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
+		fun, ok := callExpr.Fun.(*ast.SelectorExpr)
+		if ok {
+			obj := pass.TypesInfo.ObjectOf(fun.Sel)
+			checkObj(pass, obj, arg.Pos(), funcName, argName)
 		}
 	}
 }
@@ -139,19 +137,17 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string
 	if !ok {
 		return false
 	}
+	ident, ok := rhs.Fun.(*ast.Ident)
+	if ok {
+		obj := pass.TypesInfo.ObjectOf(ident)
+		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+	}
 	fun, ok := rhs.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
+	if ok {
+		obj := pass.TypesInfo.ObjectOf(fun.Sel)
+		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
-	obj := pass.TypesInfo.ObjectOf(fun.Sel)
-	targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
-	if targetName == "os.Setenv" {
-		if argName == "" {
-			argName = "testing"
-		}
-		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
-	}
-	return true
+	return false
 }
 
 func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argName string) bool {
@@ -159,17 +155,27 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argNam
 	if !ok {
 		return false
 	}
-	fun, ok := rhs.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
+	ident, ok := rhs.Fun.(*ast.Ident)
+	if ok {
+		obj := pass.TypesInfo.ObjectOf(ident)
+		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
-	obj := pass.TypesInfo.ObjectOf(fun.Sel)
+	fun, ok := rhs.Fun.(*ast.SelectorExpr)
+	if ok {
+		obj := pass.TypesInfo.ObjectOf(fun.Sel)
+		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+	}
+	return false
+}
+
+func checkObj(pass *analysis.Pass, obj types.Object, pos token.Pos, funcName, argName string) bool {
 	targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
 	if targetName == "os.Setenv" {
 		if argName == "" {
 			argName = "testing"
 		}
-		pass.Reportf(stmt.Pos(), "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
+		fmt.Println(argName, funcName)
+		pass.Reportf(pos, "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
 	}
 	return true
 }
