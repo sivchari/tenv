@@ -1,6 +1,7 @@
 package tenv
 
 import (
+	"fmt"
 	"go/ast"
 	"strings"
 
@@ -51,7 +52,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func checkFuncDecl(pass *analysis.Pass, f *ast.FuncDecl, fileName string) {
-	argName, ok := targetRunner(f.Type.Params.List, fileName)
+	argName, ok := targetRunner(pass, f.Type.Params.List, fileName)
 	if !ok {
 		return
 	}
@@ -59,7 +60,7 @@ func checkFuncDecl(pass *analysis.Pass, f *ast.FuncDecl, fileName string) {
 }
 
 func checkFuncLit(pass *analysis.Pass, f *ast.FuncLit, fileName string) {
-	argName, ok := targetRunner(f.Type.Params.List, fileName)
+	argName, ok := targetRunner(pass, f.Type.Params.List, fileName)
 	if !ok {
 		return
 	}
@@ -97,11 +98,8 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 	if !ok {
 		return false
 	}
-	x, ok := fun.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	targetName := x.Name + "." + fun.Sel.Name
+	obj := pass.TypesInfo.ObjectOf(fun.Sel)
+	targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
 	if targetName == "os.Setenv" {
 		if argName == "" {
 			argName = "testing"
@@ -121,11 +119,8 @@ func checkArgs(pass *analysis.Pass, args []ast.Expr, funcName, argName string) {
 		if !ok {
 			continue
 		}
-		x, ok := fun.X.(*ast.Ident)
-		if !ok {
-			continue
-		}
-		targetName := x.Name + "." + fun.Sel.Name
+		obj := pass.TypesInfo.ObjectOf(fun.Sel)
+		targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
 		if targetName == "os.Setenv" {
 			if argName == "" {
 				argName = "testing"
@@ -148,11 +143,8 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string
 	if !ok {
 		return false
 	}
-	x, ok := fun.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	targetName := x.Name + "." + fun.Sel.Name
+	obj := pass.TypesInfo.ObjectOf(fun.Sel)
+	targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
 	if targetName == "os.Setenv" {
 		if argName == "" {
 			argName = "testing"
@@ -171,11 +163,8 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argNam
 	if !ok {
 		return false
 	}
-	x, ok := fun.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	targetName := x.Name + "." + fun.Sel.Name
+	obj := pass.TypesInfo.ObjectOf(fun.Sel)
+	targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
 	if targetName == "os.Setenv" {
 		if argName == "" {
 			argName = "testing"
@@ -189,11 +178,11 @@ func checkForStmt(pass *analysis.Pass, stmt *ast.ForStmt, funcName, argName stri
 	checkStmts(pass, stmt.Body.List, funcName, argName)
 }
 
-func targetRunner(params []*ast.Field, fileName string) (string, bool) {
+func targetRunner(pass *analysis.Pass, params []*ast.Field, fileName string) (string, bool) {
 	for _, p := range params {
 		switch typ := p.Type.(type) {
 		case *ast.StarExpr:
-			if checkStarExprTarget(typ) {
+			if checkStarExprTarget(pass, typ) {
 				if len(p.Names) == 0 {
 					return "", false
 				}
@@ -201,7 +190,7 @@ func targetRunner(params []*ast.Field, fileName string) (string, bool) {
 				return argName, true
 			}
 		case *ast.SelectorExpr:
-			if checkSelectorExprTarget(typ) {
+			if checkSelectorExprTarget(pass, typ) {
 				if len(p.Names) == 0 {
 					return "", false
 				}
@@ -216,17 +205,12 @@ func targetRunner(params []*ast.Field, fileName string) (string, bool) {
 	return "", false
 }
 
-func checkStarExprTarget(typ *ast.StarExpr) bool {
+func checkStarExprTarget(pass *analysis.Pass, typ *ast.StarExpr) bool {
 	selector, ok := typ.X.(*ast.SelectorExpr)
 	if !ok {
 		return false
 	}
-	x, ok := selector.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	targetName := x.Name + "." + selector.Sel.Name
-	switch targetName {
+	switch pass.TypesInfo.TypeOf(selector).String() {
 	case "testing.T", "testing.B":
 		return true
 	default:
@@ -234,11 +218,6 @@ func checkStarExprTarget(typ *ast.StarExpr) bool {
 	}
 }
 
-func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
-	x, ok := typ.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	targetName := x.Name + "." + typ.Sel.Name
-	return targetName == "testing.TB"
+func checkSelectorExprTarget(pass *analysis.Pass, typ *ast.SelectorExpr) bool {
+	return pass.TypesInfo.TypeOf(typ).String() == "testing.TB"
 }
