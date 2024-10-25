@@ -1,4 +1,4 @@
-name: test_and_lint
+name: test
 
 on:
   push:
@@ -28,9 +28,11 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
       - name: Get dependencies
         run: |
           go mod download
+
       - name: Test
         run: go test ./...
 
