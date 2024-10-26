@@ -169,7 +169,13 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argNam
 }
 
 func checkObj(pass *analysis.Pass, obj types.Object, pos token.Pos, funcName, argName string) bool {
-	targetName := fmt.Sprintf("%s.%s", obj.Pkg().Name(), obj.Name())
+	// For built-in objects, obj.Pkg() returns nil.
+	var pkgPrefix string
+	if pkg := obj.Pkg(); pkg != nil {
+		pkgPrefix = pkg.Name() + "."
+	}
+
+	targetName := pkgPrefix + obj.Name()
 	if targetName == "os.Setenv" {
 		if argName == "" {
 			argName = "testing"

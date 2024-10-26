@@ -14,3 +14,8 @@ func TestAnalyzer(t *testing.T) {
 	testdata := testutil.WithModules(t, analysistest.TestData(), nil)
 	analysistest.Run(t, testdata, tenv.Analyzer, "a")
 }
+
+func TestRegression(t *testing.T) {
+	testdata := testutil.WithModules(t, analysistest.TestData(), nil)
+	analysistest.Run(t, testdata, tenv.Analyzer, "regression")
+}
