@@ -1,7 +1,6 @@
 package tenv
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -73,40 +72,33 @@ func checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string)
 	for _, stmt := range stmts {
 		switch stmt := stmt.(type) {
 		case *ast.ExprStmt:
-			if !checkExprStmt(pass, stmt, funcName, argName) {
-				continue
-			}
+			checkExprStmt(pass, stmt, funcName, argName)
 		case *ast.IfStmt:
-			if !checkIfStmt(pass, stmt, funcName, argName) {
-				continue
-			}
+			checkIfStmt(pass, stmt, funcName, argName)
 		case *ast.AssignStmt:
-			if !checkAssignStmt(pass, stmt, funcName, argName) {
-				continue
-			}
+			checkAssignStmt(pass, stmt, funcName, argName)
 		case *ast.ForStmt:
 			checkForStmt(pass, stmt, funcName, argName)
 		}
 	}
 }
 
-func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName string) bool {
+func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName string) {
 	callExpr, ok := stmt.X.(*ast.CallExpr)
 	if !ok {
-		return false
+		return
 	}
 	checkArgs(pass, callExpr.Args, funcName, argName)
 	ident, ok := callExpr.Fun.(*ast.Ident)
 	if ok {
 		obj := pass.TypesInfo.ObjectOf(ident)
-		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+		checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
 	fun, ok := callExpr.Fun.(*ast.SelectorExpr)
 	if ok {
 		obj := pass.TypesInfo.ObjectOf(fun.Sel)
-		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+		checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
-	return false
 }
 
 func checkArgs(pass *analysis.Pass, args []ast.Expr, funcName, argName string) {
@@ -128,47 +120,45 @@ func checkArgs(pass *analysis.Pass, args []ast.Expr, funcName, argName string) {
 	}
 }
 
-func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string) bool {
+func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string) {
 	assignStmt, ok := stmt.Init.(*ast.AssignStmt)
 	if !ok {
-		return false
+		return
 	}
 	rhs, ok := assignStmt.Rhs[0].(*ast.CallExpr)
 	if !ok {
-		return false
+		return
 	}
 	ident, ok := rhs.Fun.(*ast.Ident)
 	if ok {
 		obj := pass.TypesInfo.ObjectOf(ident)
-		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+		checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
 	fun, ok := rhs.Fun.(*ast.SelectorExpr)
 	if ok {
 		obj := pass.TypesInfo.ObjectOf(fun.Sel)
-		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+		checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
-	return false
 }
 
-func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argName string) bool {
+func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argName string) {
 	rhs, ok := stmt.Rhs[0].(*ast.CallExpr)
 	if !ok {
-		return false
+		return
 	}
 	ident, ok := rhs.Fun.(*ast.Ident)
 	if ok {
 		obj := pass.TypesInfo.ObjectOf(ident)
-		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+		checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
 	fun, ok := rhs.Fun.(*ast.SelectorExpr)
 	if ok {
 		obj := pass.TypesInfo.ObjectOf(fun.Sel)
-		return checkObj(pass, obj, stmt.Pos(), funcName, argName)
+		checkObj(pass, obj, stmt.Pos(), funcName, argName)
 	}
-	return false
 }
 
-func checkObj(pass *analysis.Pass, obj types.Object, pos token.Pos, funcName, argName string) bool {
+func checkObj(pass *analysis.Pass, obj types.Object, pos token.Pos, funcName, argName string) {
 	// For built-in objects, obj.Pkg() returns nil.
 	var pkgPrefix string
 	if pkg := obj.Pkg(); pkg != nil {
@@ -180,10 +170,8 @@ func checkObj(pass *analysis.Pass, obj types.Object, pos token.Pos, funcName, ar
 		if argName == "" {
 			argName = "testing"
 		}
-		fmt.Println(argName, funcName)
 		pass.Reportf(pos, "os.Setenv() can be replaced by `%s.Setenv()` in %s", argName, funcName)
 	}
-	return true
 }
 
 func checkForStmt(pass *analysis.Pass, stmt *ast.ForStmt, funcName, argName string) {
