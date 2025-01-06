@@ -3,7 +3,7 @@
 <img title="Gopher" alt="tenv Gopher" src="./tenv.png" width="400">
 
 
-[![test_and_lint](https://github.com/sivchari/tenv/actions/workflows/workflows.yml/badge.svg?branch=main)](https://github.com/sivchari/tenv/actions/workflows/workflows.yml)
+[![test](https://github.com/sivchari/tenv/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/sivchari/tenv/actions/workflows/test.yaml)
 
 tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
 
